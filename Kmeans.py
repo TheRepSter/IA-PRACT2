@@ -1,5 +1,5 @@
-__authors__ = 'TO_BE_FILLED'
-__group__ = 'TO_BE_FILLED'
+__authors__ = '1709992'
+__group__ = '13'
 
 import numpy as np
 import utils
@@ -12,15 +12,11 @@ class KMeans:
              Args:
                  K (int): Number of cluster
                  options (dict): dictionary with options
-            """
+        """
         self.num_iter = 0
         self.K = K
         self._init_X(X)
-        self._init_options(options)  # DICT options
-
-    #############################################################
-    ##  THIS FUNCTION CAN BE MODIFIED FROM THIS POINT, if needed
-    #############################################################
+        self._init_options(options)
 
     def _init_X(self, X):
         """Initialization of all pixels, sets X as an array of data in vector form (PxD)
@@ -29,11 +25,9 @@ class KMeans:
                     if matrix has more than 2 dimensions, the dimensionality of the sample space is the length of
                     the last dimension
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        self.X = np.random.rand(100, 5)
+        self.X = X.astype(float)
+        if self.X.ndim == 3:
+            self.X = np.reshape(self.X, (-1, self.X.shape[2]))
 
     def _init_options(self, options=None):
         """
@@ -57,88 +51,94 @@ class KMeans:
         # If your methods need any other parameter you can add it to the options dictionary
         self.options = options
 
-        #############################################################
-        ##  THIS FUNCTION CAN BE MODIFIED FROM THIS POINT, if needed
-        #############################################################
-
     def _init_centroids(self):
         """
         Initialization of centroids
         """
-
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
+        self.num_iter = 0
+        self.old_centroids = np.zeros((self.K, self.X.shape[1]))
+        self.centroids = np.zeros((self.K, self.X.shape[1]))
         if self.options['km_init'].lower() == 'first':
-            self.centroids = np.random.rand(self.K, self.X.shape[1])
-            self.old_centroids = np.random.rand(self.K, self.X.shape[1])
-        else:
-            self.centroids = np.random.rand(self.K, self.X.shape[1])
-            self.old_centroids = np.random.rand(self.K, self.X.shape[1])
+            i = 0
+            self.centroids[0] = self.X[0, :]
+            for k in range(1, self.K):
+                i += 1
+                while (self.centroids[:k] == self.X[i, :]).all(1).any(0):
+                    i += 1
+                self.centroids[k] = self.X[i, :]
+        elif self.options['km_init'].lower() == 'custom':
+            for k in range(self.K):
+                self.centroids[k, :] = k * 255 / (self.K - 1)
+        elif self.options['km_init'].lower() == 'random':
+            self.centroids[:] = self.X[np.random.randint(self.X.shape[0], size=self.K), :]
 
     def get_labels(self):
         """
         Calculates the closest centroid of all points in X and assigns each point to the closest centroid
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        self.labels = np.random.randint(self.K, size=self.X.shape[0])
+        dist = distance(self.X, self.centroids)
+        self.labels = np.argmin(dist, 1)
 
     def get_centroids(self):
         """
         Calculates coordinates of centroids based on the coordinates of all the points assigned to the centroid
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        pass
+        np.copyto(self.old_centroids, self.centroids)
+        for i in range(self.K):
+            x = self.X[self.labels == i, :]
+            if x.size > 0:
+                self.centroids[i, :] = np.mean(x, 0)
 
     def converges(self):
         """
         Checks if there is a difference between current and old centroids
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        return True
+        return np.allclose(self.centroids, self.old_centroids, atol=self.options['tolerance'], rtol=0.0)
 
     def fit(self):
         """
-        Runs K-Means algorithm until it converges or until the number of iterations is smaller
-        than the maximum number of iterations.
+        Runs K-Means algorithm until it converges or until the number of iterations is smaller than the maximum number of iterations.
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        pass
+        self._init_centroids()
+        self.get_labels()
+        while not self.converges():
+            self.num_iter += 1
+            self.get_centroids()
+            self.get_labels()
 
     def withinClassDistance(self):
         """
          returns the within class distance of the current clustering
         """
-
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        pass
+        return (((self.X - self.centroids[self.labels, :]) ** 2).sum(axis=1)).mean()
 
     def find_bestK(self, max_K):
         """
          sets the best k analysing the results up to 'max_K' clusters
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
-        pass
+        SSE = []
+        for k in range(2, max_K + 1):
+            self.K = k
+            self.fit()
+            WCD = self.withinClassDistance()
+            SSE.append(WCD)
 
+            if len(SSE) > 1 and SSE[-1] > SSE[-2] * 0.8:
+                break
+
+        self.K = self.K - 1
+        self.fit()
+
+        if self.options['verbose']:
+            plt.subplot(133)
+            plt.plot(SSE)
+            plt.subplot(131)
+            plt.imshow(self.X.reshape((80, 60, 3)) / 255)
+            plt.axis('off')
+            plt.subplot(132)
+            plt.imshow((self.centroids[self.labels] / 255).reshape((80, 60, 3)))
+            plt.axis('off')
+            plt.show()
 
 def distance(X, C):
     """
@@ -151,13 +151,14 @@ def distance(X, C):
         dist: PxK numpy array position ij is the distance between the
         i-th point of the first set an the j-th point of the second set
     """
-
-    #########################################################
-    ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-    ##  AND CHANGE FOR YOUR OWN CODE
-    #########################################################
-    return np.random.rand(X.shape[0], C.shape[0])
-
+    if X.ndim == 3:
+        X = np.reshape(X, (-1, X.shape[-1]))
+    if C.ndim == 3:
+        C = np.reshape(C, (-1, C.shape[-1]))
+    dist = np.zeros((X.shape[0], C.shape[0]))
+    for i in range(C.shape[0]):
+        dist[:, i] = np.sum((X - C[i]) ** 2, 1)
+    return np.sqrt(dist)
 
 def get_colors(centroids):
     """
