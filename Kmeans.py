@@ -170,4 +170,4 @@ def get_colors(centroids):
     Returns:
         labels: list of K labels corresponding to one of the 11 basic colors
     """
-    return map(lambda x: utils.colors[x], [np.argmax(i) for i in utils.get_color_prob(centroids)])
+    return list(map(lambda x: utils.colors[x], [np.argmax(i) for i in utils.get_color_prob(centroids)]))
