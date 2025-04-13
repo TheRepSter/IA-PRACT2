@@ -1,4 +1,4 @@
-__authors__ = '1709992'
+__authors__ = ['1709992', '1711342', '1620854', '1641014']
 __group__ = '13'
 
 from utils_data import read_dataset, read_extended_dataset, crop_images

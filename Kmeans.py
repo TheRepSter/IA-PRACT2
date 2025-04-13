@@ -1,12 +1,13 @@
-__authors__ = '1709992'
+__authors__ = ['1709992', '1711342', '1620854', '1641014']
 __group__ = '13'
 
 import numpy as np
 import utils
+from matplotlib import pyplot as plt
 
 class KMeans:
 
-    def __init__(self, X, K=1, options=None):
+    def __init__(self, X, K = 1, options = None):
         """
          Constructor of KMeans class
              Args:
@@ -27,7 +28,7 @@ class KMeans:
         """
         self.X = X.astype(float)
         if self.X.ndim == 3:
-            self.X = np.reshape(self.X, (-1, self.X.shape[2]))
+            self.X = np.reshape(self.X, (-1, self.X.shape[2]) )
 
     def _init_options(self, options=None):
         """
@@ -56,9 +57,14 @@ class KMeans:
         Initialization of centroids
         """
         self.num_iter = 0
-        self.old_centroids = np.zeros((self.K, self.X.shape[1]))
-        self.centroids = np.zeros((self.K, self.X.shape[1]))
-        if self.options['km_init'].lower() == 'first':
+        self.centroids = np.zeros( (self.K, self.X.shape[1]) )
+        self.old_centroids = np.zeros( (self.K, self.X.shape[1]) )
+        if self.options['km_init'].lower() == 'random':
+            self.centroids[:] = self.X[np.random.randint(self.X.shape[0], size = self.K), :]
+        elif self.options['km_init'].lower() == 'custom':
+            for k in range(self.K):
+                self.centroids[k, :] = k * 255 / (self.K - 1)
+        elif self.options['km_init'].lower() == 'first':
             i = 0
             self.centroids[0] = self.X[0, :]
             for k in range(1, self.K):
@@ -66,18 +72,13 @@ class KMeans:
                 while (self.centroids[:k] == self.X[i, :]).all(1).any(0):
                     i += 1
                 self.centroids[k] = self.X[i, :]
-        elif self.options['km_init'].lower() == 'custom':
-            for k in range(self.K):
-                self.centroids[k, :] = k * 255 / (self.K - 1)
-        elif self.options['km_init'].lower() == 'random':
-            self.centroids[:] = self.X[np.random.randint(self.X.shape[0], size=self.K), :]
 
     def get_labels(self):
         """
         Calculates the closest centroid of all points in X and assigns each point to the closest centroid
         """
-        dist = distance(self.X, self.centroids)
-        self.labels = np.argmin(dist, 1)
+        distan = distance(self.X, self.centroids)
+        self.labels = np.argmin(distan, 1)
 
     def get_centroids(self):
         """
@@ -93,7 +94,7 @@ class KMeans:
         """
         Checks if there is a difference between current and old centroids
         """
-        return np.allclose(self.centroids, self.old_centroids, atol=self.options['tolerance'], rtol=0.0)
+        return np.allclose(self.centroids, self.old_centroids, atol = self.options['tolerance'], rtol = 0.0)
 
     def fit(self):
         """
@@ -110,7 +111,7 @@ class KMeans:
         """
          returns the within class distance of the current clustering
         """
-        return (((self.X - self.centroids[self.labels, :]) ** 2).sum(axis=1)).mean()
+        return ( ( (self.X - self.centroids[self.labels, :]) * (self.X - self.centroids[self.labels, :]) ).sum(axis = 1)).mean()
 
     def find_bestK(self, max_K):
         """
@@ -133,11 +134,11 @@ class KMeans:
             plt.subplot(133)
             plt.plot(SSE)
             plt.subplot(131)
-            plt.imshow(self.X.reshape((80, 60, 3)) / 255)
             plt.axis('off')
+            plt.imshow(self.X.reshape( (80, 60, 3) ) / 255)
             plt.subplot(132)
-            plt.imshow((self.centroids[self.labels] / 255).reshape((80, 60, 3)))
             plt.axis('off')
+            plt.imshow( (self.centroids[self.labels] / 255).reshape( (80, 60, 3) ) )
             plt.show()
 
 def distance(X, C):
@@ -152,12 +153,12 @@ def distance(X, C):
         i-th point of the first set an the j-th point of the second set
     """
     if X.ndim == 3:
-        X = np.reshape(X, (-1, X.shape[-1]))
+        X = np.reshape(X, (-1, X.shape[-1]) )
     if C.ndim == 3:
-        C = np.reshape(C, (-1, C.shape[-1]))
-    dist = np.zeros((X.shape[0], C.shape[0]))
+        C = np.reshape(C, (-1, C.shape[-1]) )
+    dist = np.zeros( (X.shape[0], C.shape[0]) )
     for i in range(C.shape[0]):
-        dist[:, i] = np.sum((X - C[i]) ** 2, 1)
+        dist[:, i] = np.sum( (X - C[i]) * (X - C[i]), 1)
     return np.sqrt(dist)
 
 def get_colors(centroids):
@@ -169,9 +170,4 @@ def get_colors(centroids):
     Returns:
         labels: list of K labels corresponding to one of the 11 basic colors
     """
-
-    #########################################################
-    ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-    ##  AND CHANGE FOR YOUR OWN CODE
-    #########################################################
-    return list(utils.colors)
+    return map(lambda x: utils.colors[x], [np.argmax(i) for i in utils.get_color_prob(centroids)])
