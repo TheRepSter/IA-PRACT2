@@ -21,10 +21,6 @@ class KNN:
         :param train_data: PxMxNx3 matrix corresponding to P color images
         :return: assigns the train set to the matrix self.train_data shaped as PxD (P points in a D dimensional space)
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
         if train_data.dtype!=float: train_data=train_data.astype(float)
         self.train_data = train_data.reshape(len(train_data), 4800)
 
@@ -36,10 +32,6 @@ class KNN:
         :return: the matrix self.neighbors is created (NxK)
                  the ij-th entry is the j-th nearest train point to the i-th test point
         """
-        #######################################################
-        ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
-        ##  AND CHANGE FOR YOUR OWN CODE
-        #######################################################
         if test_data.dtype!=float: test_data=test_data.astype(float)
         test_data=test_data.reshape(len(test_data), 4800)
 
