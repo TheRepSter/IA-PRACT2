@@ -40,8 +40,8 @@ class KNN:
         ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
         ##  AND CHANGE FOR YOUR OWN CODE
         #######################################################
-        if train_data.dtype!=float: train_data=train_data.astype(float)
-        self.train_data = train_data.reshape(len(train_data), 4800)
+        if test_data.dtype!=float: test_data=test_data.astype(float)
+        test_data=test_data.reshape(len(test_data), 4800)
 
         distances = cdist(test_data, self.train_data).argsort(axis=1)[::, :k]
 
