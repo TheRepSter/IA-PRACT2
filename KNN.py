@@ -39,7 +39,17 @@ class KNN:
         ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
         ##  AND CHANGE FOR YOUR OWN CODE
         #######################################################
-        self.neighbors = np.random.randint(k, size=[test_data.shape[0], k])
+        if test_data.dtype != float:
+            test_data = test_data.astype(float)
+
+        if test_data.ndim > 2:
+            test_data = test_data.reshape(test_data.shape[0], -1)
+
+        distances = cdist(test_data, self.train_data).argsort(axis=1)[::, :k]
+
+        self.neighbors = np.array(
+                [self.labels[i] for i in np.nditer(distances)]
+                ).reshape(distances.shape[0], k)
 
     def get_class(self):
         """
