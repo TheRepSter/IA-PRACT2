@@ -58,4 +58,4 @@ class KNN:
         """
 
         self.get_k_neighbours(test_data, k)
-        return self.get_class()
+        return np.array(self.get_class())
