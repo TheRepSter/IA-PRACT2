@@ -25,7 +25,8 @@ class KNN:
         ##  YOU MUST REMOVE THE REST OF THE CODE OF THIS FUNCTION
         ##  AND CHANGE FOR YOUR OWN CODE
         #######################################################
-        self.train_data = train_data.reshape(len(train_data), -1)
+        if train_data.dtype!=float: train_data=train_data.astype(float)
+        self.train_data = train_data.reshape(len(train_data), 4800)
 
     def get_k_neighbours(self, test_data, k):
         """
