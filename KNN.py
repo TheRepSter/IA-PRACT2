@@ -22,7 +22,7 @@ class KNN:
         :return: assigns the train set to the matrix self.train_data shaped as PxD (P points in a D dimensional space)
         """
         if train_data.dtype!=float: train_data=train_data.astype(float)
-        self.train_data = train_data.reshape(len(train_data), 4800)
+        self.train_data = train_data.reshape(train_data.shape[0], -1)
 
     def get_k_neighbours(self, test_data, k):
         """
@@ -33,7 +33,7 @@ class KNN:
                  the ij-th entry is the j-th nearest train point to the i-th test point
         """
         if test_data.dtype!=float: test_data=test_data.astype(float)
-        test_data=test_data.reshape(len(test_data), 4800)
+        test_data=test_data.reshape(len(test_data), -1)
 
         distances = cdist(test_data, self.train_data).argsort(axis=1)[::, :k]
 

@@ -7,6 +7,10 @@ from time import time
 from utils_data import read_dataset, read_extended_dataset, crop_images, visualize_retrieval
 from KNN import KNN
 from Kmeans import KMeans, get_colors
+from threading import Thread
+from os import cpu_count
+from os.path import isfile
+import pickle
 
 
 if __name__ == '__main__':
@@ -22,20 +26,43 @@ if __name__ == '__main__':
     imgs, class_labels, color_labels, upper, lower, background = read_extended_dataset()
     cropped_images = crop_images(imgs, upper, lower)
 
-    def get_labels(k: int = 1):
-        knn = KNN(train_imgs, train_class_labels)
-        shape_labels = knn.predict(test_imgs, k)
-        shape_labels = []
-        color_labels = []
-        options = {}
-
-
-        for img in test_imgs:
-            km = KMeans(img, k, options)
+    def add_color(idx:int, stored:list[list], imgs, k):
+        for img in imgs:
+            km = KMeans(img, k, {})
             km.find_bestK(k)
             km.fit()
             colors = get_colors(km.centroids)
-            color_labels.append(colors)
+            stored[idx].append(colors)
+
+
+    def get_labels(k: int = 1):
+        if isfile("labels.pkl"):
+            with open("labels.pkl", "rb") as f:
+                shape_labels, color_labels = pickle.load(f)
+            return shape_labels, color_labels
+
+        knn = KNN(train_imgs, train_class_labels)
+        shape_labels = knn.predict(test_imgs, k)
+        color_labels = []
+
+        threads = []
+        stored = [[] for _ in range(cpu_count()+1)]
+
+        img_per_thread = len(test_imgs)//cpu_count()
+
+        for i in range(cpu_count()):
+            threads.append(Thread(target=add_color, args=(i, stored, test_imgs[i*img_per_thread:(i+1)*img_per_thread], k)))
+        threads.append(Thread(target=add_color, args=(cpu_count(), stored, test_imgs[cpu_count()*img_per_thread:len(test_imgs)], k)))
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+        color_labels = sum(stored, [])
+
+        with open("labels.pkl", "wb") as f:
+            pickle.dump((shape_labels, color_labels), f)
 
         return shape_labels, color_labels
 
@@ -89,9 +116,33 @@ if __name__ == '__main__':
             wcds.append(kmeans.withinClassDistance())
         return wcds, iteracions, temps
 
+    def get_shape_accuracy(labels, ground_truth):
+        if not len(labels) == len(ground_truth):
+            raise ValueError("labels and ground truth should be the same size")
 
-    def visualize_kmeans_statistics(wcds, iteracions, temps):
+        correct = np.equal(labels, ground_truth)
+        accuracy = np.count_nonzero(correct) / len(labels)
+
+        return accuracy
+
+    def get_color_accuracy(labels, ground_truth):
+        if not len(labels) == len(ground_truth):
+            raise ValueError("labels and ground truth should be the same size")
+
+        accuracy_total = 0
+        for label, gt in zip(labels, ground_truth):
+            accuracy_total += len(set(gt).intersection(set(label)))/len(set(gt))
+
+        accuracy = accuracy_total / len(labels)
+
+        return accuracy
+    
+
+    def visualize_kmeans_statistics(wcds, iteracions, temps, shape_accuracy, color_accuracy):
         plt.figure(figsize=(10, 6))
+
+        plt.suptitle(f"Color accuracy: {color_accuracy*100}%   Shape accuracy: {shape_accuracy*100}%")
+
 
         plt.subplot(1, 3, 1)
         plt.plot(range(2, len(wcds)+2), wcds, marker="o")
@@ -117,7 +168,7 @@ if __name__ == '__main__':
     def main():
         print("""Select test method:
     1: Retrieval by colour (KMeans)
-    2: WIP Retrieval by shape (KNN)
+    2: Retrieval by shape (KNN)
     3: WIP Retrieval by colour and shape (KMeans and KNN)
     4: Quantitative analysis""")
         n = input("Method seletion: ")
@@ -125,16 +176,24 @@ if __name__ == '__main__':
         if n not in ["1", "2", "3", "4"]:
             print("Method not recognised, exiting...")
             return
-        if not n == "4":
-            shape_labels, color_labels = get_labels(10)
+        shape_labels, color_labels = get_labels(10)
         match int(n):
             case 1:
-                my_querry = input("Choosea color que querry: ")
+                my_querry = input("Choose colors to querry [coma separeated ex: \"pink,red\"]: ")
                 my_querry = my_querry.split(",")
                 idxs, imgs = retrieval_by_color(test_imgs, color_labels, my_querry)
-                visualize_retrieval(imgs, n_elem, info=[test_class_labels[i] for i in idxs], ok=[any(query in np.char.lower(test_color_labels[i]) for query in np.char.lower(my_querry)) for i in idxs], title=my_querry)
+                visualize_retrieval(imgs, n_elem, info=[test_color_labels[i] for i in idxs], ok=[any(query in np.char.lower(test_color_labels[i]) for query in np.char.lower(my_querry)) for i in idxs], title=my_querry)
+
+            case 2:
+                my_querry = input("Choose a shape to querry: ")
+                idxs, imgs = retrieval_by_shape(test_imgs, shape_labels, my_querry)
+                print(idxs, imgs)
+                visualize_retrieval(imgs, n_elem, info=[test_class_labels[i] for i in idxs], ok=[my_querry.lower() == test_class_labels[i].lower() for i in idxs], title=my_querry)
+
+            case 3:
+                shape_querry = input("")
 
             case 4:
-                visualize_kmeans_statistics(*kmean_statistics(KMeans(test_imgs[0]), 10))
+                visualize_kmeans_statistics(*kmean_statistics(KMeans(test_imgs[0]), 10), get_shape_accuracy(shape_labels, test_class_labels), get_color_accuracy(color_labels, test_color_labels))
 
     main()
