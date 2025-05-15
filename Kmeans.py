@@ -122,7 +122,7 @@ class KMeans:
             self.K = k
             self.fit()
             WCD = self.withinClassDistance()
-            print(WCD)
+            # print(WCD)
             SSE.append(WCD)
 
             if len(SSE) > 1 and SSE[-1] > SSE[-2] * 0.8:
