@@ -23,8 +23,8 @@ if __name__ == '__main__':
     cropped_images = crop_images(imgs, upper, lower)
 
     def get_labels(k: int = 1):
-        #knn = KNN(train_imgs, train_class_labels)
-        #shape_labels = knn.predict(test_imgs, k)
+        knn = KNN(train_imgs, train_class_labels)
+        shape_labels = knn.predict(test_imgs, k)
         shape_labels = []
         color_labels = []
         options = {}
