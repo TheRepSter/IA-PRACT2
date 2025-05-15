@@ -169,10 +169,10 @@ if __name__ == '__main__':
         print("""Select test method:
     1: Retrieval by colour (KMeans)
     2: Retrieval by shape (KNN)
-    3: WIP Retrieval by colour and shape (KMeans and KNN)
+    3: Retrieval by colour and shape (KMeans and KNN)
     4: Quantitative analysis""")
         n = input("Method seletion: ")
-        n_elem = 25
+        n_elem = 20
         if n not in ["1", "2", "3", "4"]:
             print("Method not recognised, exiting...")
             return
@@ -191,7 +191,11 @@ if __name__ == '__main__':
                 visualize_retrieval(imgs, n_elem, info=[test_class_labels[i] for i in idxs], ok=[my_querry.lower() == test_class_labels[i].lower() for i in idxs], title=my_querry)
 
             case 3:
-                shape_querry = input("")
+                shape_querry = input("Choose a shape to querry: ")
+                color_querry = input("Choose colors to querry [coma separeated ex: \"pink,red\"]: ")
+                color_querry = color_querry.split(",")
+                idxs, imgs = retrieval_combined(test_imgs, shape_labels, color_labels, shape_querry, color_querry)
+                visualize_retrieval(imgs, n_elem, info=[(test_color_labels[i], test_class_labels[i]) for i in idxs], ok=[any(query in np.char.lower(test_color_labels[i]) for query in np.char.lower(color_querry)) and shape_querry.lower() == test_class_labels[i].lower() for i in idxs], title=f"{', '.join(color_querry)}, {shape_querry}")
 
             case 4:
                 visualize_kmeans_statistics(*kmean_statistics(KMeans(test_imgs[0]), 10), get_shape_accuracy(shape_labels, test_class_labels), get_color_accuracy(color_labels, test_color_labels))
