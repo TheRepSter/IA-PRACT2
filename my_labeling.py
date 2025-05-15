@@ -26,20 +26,57 @@ if __name__ == '__main__':
     imgs, class_labels, color_labels, upper, lower, background = read_extended_dataset()
     cropped_images = crop_images(imgs, upper, lower)
 
-    def add_color(idx:int, stored:list[list], imgs, k):
+    def add_color(idx:int, stored:list[list], imgs, k, options):
         for img in imgs:
-            km = KMeans(img, k, {})
+            km = KMeans(img, k, options)
             km.find_bestK(k)
             km.fit()
             colors = get_colors(km.centroids)
             stored[idx].append(colors)
 
 
+    def options_dialog() -> dict:
+        options = {}
+        customize = input("Do you want to costumize Kmeans opptions? [Y/n] ")
+        if not customize.lower() == "y":
+            return options
+
+        print("""Choose a 'km_init':
+    1: first
+    2: naive shearding
+    3: k-means++
+    4: custom
+    5: random""")
+        opt = input("Option: [1,2,3,4,5] ")
+        if opt not in ["1", "2", "3", "4", "5"]:
+            print("Unrecognised option defaulting to first")
+            opt = "1"
+        options["km_init"] = ["first", "naive shearding", "k-means++", "custom", "random"][int(opt)]
+        
+
+        print("""Choose a 'fitting':
+    1: WCD
+    2: interClassDistance
+    3: intraClassDistance
+    4: fisher""")
+        opt = input("Option: [1, 2, 3, 4] ")
+        if opt not in ["1", "2", "3", "4"]:
+            print("Unrecognised option defaulting to WCD")
+            opt = "1"
+        options["fitting"] = ["WCD", "interClassDistance", "intraClassDistance", "fisher"][int(opt)]
+
+        return options
+
+
+
     def get_labels(k: int = 1):
         if isfile("labels.pkl"):
-            with open("labels.pkl", "rb") as f:
-                shape_labels, color_labels = pickle.load(f)
-            return shape_labels, color_labels
+            if input("Load saved labels? [Y/n] ").lower() == "y":
+                with open("labels.pkl", "rb") as f:
+                    shape_labels, color_labels = pickle.load(f)
+                return shape_labels, color_labels
+
+        options = options_dialog()
 
         knn = KNN(train_imgs, train_class_labels)
         shape_labels = knn.predict(test_imgs, k)
@@ -51,8 +88,8 @@ if __name__ == '__main__':
         img_per_thread = len(test_imgs)//cpu_count()
 
         for i in range(cpu_count()):
-            threads.append(Thread(target=add_color, args=(i, stored, test_imgs[i*img_per_thread:(i+1)*img_per_thread], k)))
-        threads.append(Thread(target=add_color, args=(cpu_count(), stored, test_imgs[cpu_count()*img_per_thread:len(test_imgs)], k)))
+            threads.append(Thread(target=add_color, args=(i, stored, test_imgs[i*img_per_thread:(i+1)*img_per_thread], k, options)))
+        threads.append(Thread(target=add_color, args=(cpu_count(), stored, test_imgs[cpu_count()*img_per_thread:len(test_imgs)], k, options)))
 
         for thread in threads:
             thread.start()
