@@ -2,7 +2,7 @@ __authors__ = ['1709992', '1711342', '1620854', '1641014']
 __group__ = '13'
 
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from time import time
 from utils_data import read_dataset, read_extended_dataset, crop_images, visualize_retrieval
 from KNN import KNN
@@ -84,7 +84,7 @@ if __name__ == '__main__':
             kmeans.K = k
             start = time()
             kmeans.fit()
-            time.append(time()-start)
+            temps.append(time()-start)
             iteracions.append(kmeans.num_iter)
             wcds.append(kmeans.withinClassDistance())
         return wcds, iteracions, temps
@@ -92,26 +92,41 @@ if __name__ == '__main__':
 
     def visualize_kmeans_statistics(wcds, iteracions, temps):
         plt.figure(figsize=(10, 6))
-        
+
         plt.subplot(1, 3, 1)
-        plt.plot(range(2, len(wcds)), wcds, marker="o")
+        plt.plot(range(2, len(wcds)+2), wcds, marker="o")
         plt.title("Distancia interclass (withinClassDistance)")
         plt.xlabel("Numero de clusters (K)")
         plt.ylabel("WCD")
 
+        plt.subplot(1, 3, 2)
+        plt.plot(range(2, len(iteracions)+2), iteracions, marker="o")
+        plt.title("Numero d'iteracions")
+        plt.xlabel("Numero de clusters (K)")
+        plt.ylabel("Iteracions")
+
+        plt.subplot(1, 3, 3)
+        plt.plot(range(2, len(temps)+2), temps, marker="o")
+        plt.title("Temps de convergencia")
+        plt.xlabel("Numero de clusters (K)")
+        plt.ylabel("Temps")
+
+        plt.tight_layout()
+        plt.show()
+
     def main():
         print("""Select test method:
     1: Retrieval by colour (KMeans)
-    2: Retrieval by shape (KNN)
-    3: Retrieval by colour and shape (KMeans and KNN)
+    2: WIP Retrieval by shape (KNN)
+    3: WIP Retrieval by colour and shape (KMeans and KNN)
     4: Quantitative analysis""")
         n = input("Method seletion: ")
         n_elem = 25
-        shape_labels, color_labels = get_labels(10)
         if n not in ["1", "2", "3", "4"]:
             print("Method not recognised, exiting...")
             return
-
+        if not n == "4":
+            shape_labels, color_labels = get_labels(10)
         match int(n):
             case 1:
                 my_querry = input("Choosea color que querry: ")
@@ -119,6 +134,7 @@ if __name__ == '__main__':
                 idxs, imgs = retrieval_by_color(test_imgs, color_labels, my_querry)
                 visualize_retrieval(imgs, n_elem, info=[test_class_labels[i] for i in idxs], ok=[any(query in np.char.lower(test_color_labels[i]) for query in np.char.lower(my_querry)) for i in idxs], title=my_querry)
 
-            
+            case 4:
+                visualize_kmeans_statistics(*kmean_statistics(KMeans(test_imgs[0]), 10))
 
     main()
